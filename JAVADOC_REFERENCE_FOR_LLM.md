@@ -345,6 +345,114 @@ public MyClass(Config config) {
 }
 ```
 
+### Getters and Setters
+
+**YES, document them!** Level of detail depends on complexity.
+
+#### Simple Getters/Setters
+```java
+/**
+ * Returns the user's email address.
+ *
+ * @return the email, or null if not set
+ */
+public String getEmail() { return email; }
+
+/**
+ * Sets the user's email address.
+ *
+ * @param email the email, can be null
+ * @throws IllegalArgumentException if email format is invalid
+ */
+public void setEmail(String email) { this.email = email; }
+```
+
+#### Complex Getters (with computation/caching)
+```java
+/**
+ * Returns the full name.
+ * <p>
+ * Constructs name from first and last name components.
+ * Result is cached after first computation.
+ *
+ * @return the full name, never null but can be empty
+ */
+public String getFullName() { }
+```
+
+#### Complex Setters (with side effects)
+```java
+/**
+ * Sets the user status.
+ * <p>
+ * Changing status triggers: timestamp update, session clearing,
+ * user notification, and audit logging.
+ *
+ * @param status the new status, must not be null
+ * @throws NullPointerException if status is null
+ * @throws IllegalStateException if transition not allowed
+ */
+public void setStatus(UserStatus status) { }
+```
+
+#### Boolean Getters (is/has)
+```java
+/**
+ * Checks if account is active.
+ *
+ * @return {@code true} if active, {@code false} otherwise
+ */
+public boolean isActive() { }
+
+/**
+ * Checks if user has admin privileges.
+ *
+ * @return {@code true} if admin, {@code false} otherwise
+ */
+public boolean hasAdminPrivileges() { }
+```
+
+#### Collection Getters
+```java
+/**
+ * Returns the user's roles.
+ * <p>
+ * The returned list is unmodifiable.
+ *
+ * @return unmodifiable list of roles, never null but can be empty
+ */
+public List<Role> getRoles() {
+    return Collections.unmodifiableList(roles);
+}
+```
+
+#### Fluent Setters (Builder pattern)
+```java
+/**
+ * Sets the email address.
+ * <p>
+ * Fluent setter for method chaining.
+ *
+ * @param email the email, must not be null
+ * @return this instance for method chaining
+ * @throws NullPointerException if email is null
+ */
+public User setEmail(String email) {
+    this.email = email;
+    return this;
+}
+```
+
+**Key points for getters/setters:**
+1. **Always specify null handling**: "can be null", "never null", "or null if not set"
+2. **Document validation rules** in setters
+3. **Document side effects** (notifications, logging, cascading updates)
+4. **Document thread safety** if accessing shared state
+5. **Document immutability constraints** ("cannot be changed after initial setting")
+6. **For boolean getters**, use clear true/false descriptions
+7. **For collection getters**, specify if returned collection is modifiable
+8. **Document performance** if getter does expensive computation
+
 ### Package (package-info.java)
 
 ```java

@@ -6,32 +6,36 @@ This repository contains comprehensive Javadoc documentation guides for Java dev
 
 ### Full Comprehensive Guides
 
-#### 1. **JAVADOC_GUIDE_EN.md** (English, 2338 lines)
+#### 1. **JAVADOC_GUIDE_EN.md** (English, 2757 lines)
 - Complete, production-ready Javadoc guide in English
 - 14 detailed sections covering all Java elements
-- Covers: Classes, Interfaces, Enums, Records, Annotations, Fields, Methods, Constructors, Generics, Packages, Modules
+- Covers: Classes, Interfaces, Enums, Records, Annotations, Fields, Methods, Constructors, **Getters/Setters**, Generics, Packages, Modules
+- **NEW: Comprehensive section on documenting getters and setters** (simple, complex, boolean, collection, fluent)
 - Includes extensive good/bad examples
 - Full doclint compliance explanations
 - Best practices and common mistakes checklist
 
-#### 2. **JAVADOC_GUIDE_RU.md** (Russian, 2335 lines)
+#### 2. **JAVADOC_GUIDE_RU.md** (Russian, 2755 lines)
 - Complete, production-ready Javadoc guide in Russian
 - Identical structure and content to English version
+- **NEW: Comprehensive section on documenting getters and setters** (геттеры и сеттеры)
 - Full translation maintaining technical accuracy
 - All examples and checklists included
 
 ### LLM System Prompt References
 
-#### 3. **JAVADOC_REFERENCE_FOR_LLM.md** (English, 860 lines)
+#### 3. **JAVADOC_REFERENCE_FOR_LLM.md** (English, 968 lines)
 - **Compact reference guide optimized for LLM context**
 - Designed to be used as a system prompt for code generation
 - Quick-lookup format with critical rules and examples
+- **NEW: Added getters/setters section with all patterns** (simple, complex, boolean, collection, fluent)
 - All doclint requirements condensed
 - Perfect for AI-assisted Javadoc generation and correction
 
-#### 4. **JAVADOC_REFERENCE_FOR_LLM_RU.md** (Russian, 860 lines)
+#### 4. **JAVADOC_REFERENCE_FOR_LLM_RU.md** (Russian, 968 lines)
 - **Compact reference guide in Russian for LLM context**
 - Same structure as English LLM reference
+- **NEW: Added getters/setters section** (геттеры и сеттеры со всеми паттернами)
 - Optimized for Russian-speaking LLM applications
 - All critical information in condensed format
 
@@ -61,6 +65,7 @@ Use **JAVADOC_REFERENCE_FOR_LLM.md** or **JAVADOC_REFERENCE_FOR_LLM_RU.md**:
 
 ### Coverage
 - ✅ All Java element types (Classes, Interfaces, Enums, Records, Annotations, Fields, Methods, Constructors)
+- ✅ **Getters and Setters** (simple, complex, boolean, collection, fluent patterns)
 - ✅ Generic types and type parameters
 - ✅ Package documentation (package-info.java)
 - ✅ Module documentation (module-info.java)
@@ -214,6 +219,49 @@ public record UserProfile(String id, String name) {
         if (name.isEmpty()) {
             throw new IllegalArgumentException("Name cannot be empty");
         }
+    }
+}
+```
+
+### Getters and Setters Documentation
+```java
+public class User {
+    private String email;
+    private UserStatus status;
+    
+    /**
+     * Returns the user's email address.
+     * <p>
+     * Email is validated at the time of setting.
+     *
+     * @return the email, or null if not set
+     */
+    public String getEmail() {
+        return email;
+    }
+    
+    /**
+     * Sets the user's email address.
+     * <p>
+     * Email must be in valid format (user@domain.tld).
+     *
+     * @param email the email, can be null to clear
+     * @throws IllegalArgumentException if email format is invalid
+     */
+    public void setEmail(String email) {
+        if (email != null && !isValidEmail(email)) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        this.email = email;
+    }
+    
+    /**
+     * Checks if the user account is active.
+     *
+     * @return {@code true} if active, {@code false} otherwise
+     */
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
     }
 }
 ```

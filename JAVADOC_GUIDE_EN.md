@@ -8,6 +8,7 @@
 5. [Documenting Annotations](#5-documenting-annotations)
 6. [Documenting Fields](#6-documenting-fields)
 7. [Documenting Methods and Constructors](#7-documenting-methods-and-constructors)
+   - 7.7 [Documenting Getters and Setters](#77-documenting-getters-and-setters)
 8. [Documenting Generic Types and Type Parameters](#8-documenting-generic-types-and-type-parameters)
 9. [Package Documentation (package-info.java)](#9-package-documentation-package-infojava)
 10. [Module Documentation (module-info.java)](#10-module-documentation-module-infojava)
@@ -1103,6 +1104,424 @@ public ShoppingCart(String userId, String sessionId) {
     // implementation
 }
 ```
+
+### 7.7 Documenting Getters and Setters
+
+Getters and setters **should be documented**, but the level of detail depends on their complexity.
+
+#### Simple Getters
+
+For **simple getters** (direct field access with no logic), provide concise documentation:
+
+**Minimum required:**
+```java
+/**
+ * Returns the user's email address.
+ *
+ * @return the email address, or null if not set
+ */
+public String getEmail() {
+    return email;
+}
+```
+
+**Better with details:**
+```java
+/**
+ * Returns the user's email address.
+ * <p>
+ * The email is validated at the time of setting and guaranteed
+ * to be in valid format if not null.
+ *
+ * @return the email address, or null if not set
+ */
+public String getEmail() {
+    return email;
+}
+```
+
+#### Simple Setters
+
+For **simple setters** (direct field assignment), document constraints and validation:
+
+**Minimum required:**
+```java
+/**
+ * Sets the user's email address.
+ *
+ * @param email the email address, can be null
+ */
+public void setEmail(String email) {
+    this.email = email;
+}
+```
+
+**Better with validation rules:**
+```java
+/**
+ * Sets the user's email address.
+ * <p>
+ * The email must be in valid format (user@domain.tld).
+ * Setting null clears the email address.
+ *
+ * @param email the email address, can be null to clear
+ * @throws IllegalArgumentException if email is not null and invalid format
+ */
+public void setEmail(String email) {
+    if (email != null && !isValidEmail(email)) {
+        throw new IllegalArgumentException("Invalid email format");
+    }
+    this.email = email;
+}
+```
+
+#### Complex Getters
+
+For getters with **computation, caching, or lazy initialization**:
+
+```java
+/**
+ * Returns the user's full name.
+ * <p>
+ * This method constructs the full name from first and last name
+ * components. If either component is null, returns only the non-null
+ * part. If both are null, returns empty string.
+ * <p>
+ * The result is cached after first computation for performance.
+ *
+ * @return the full name, never null but can be empty
+ */
+public String getFullName() {
+    if (fullNameCache == null) {
+        fullNameCache = buildFullName();
+    }
+    return fullNameCache;
+}
+```
+
+#### Complex Setters
+
+For setters with **validation, side effects, or cascading updates**:
+
+```java
+/**
+ * Sets the user's status.
+ * <p>
+ * Changing the status triggers several side effects:
+ * <ul>
+ *   <li>Updates the last modified timestamp</li>
+ *   <li>Clears the session if status is SUSPENDED or INACTIVE</li>
+ *   <li>Sends notification to user if status changes</li>
+ *   <li>Logs the status change for audit purposes</li>
+ * </ul>
+ * <p>
+ * This method is thread-safe but may block briefly for notification delivery.
+ *
+ * @param status the new status, must not be null
+ * @throws NullPointerException if status is null
+ * @throws IllegalStateException if current status doesn't allow transition
+ *         to the new status
+ */
+public void setStatus(UserStatus status) {
+    validateStatusTransition(this.status, status);
+    this.status = status;
+    this.lastModified = Instant.now();
+    handleStatusChange(status);
+}
+```
+
+#### Boolean Getters (is/has prefixes)
+
+Boolean getters commonly use `is` or `has` prefixes:
+
+```java
+/**
+ * Checks if the user account is active.
+ * <p>
+ * An account is considered active if the status is ACTIVE
+ * and the account is not expired.
+ *
+ * @return {@code true} if account is active, {@code false} otherwise
+ */
+public boolean isActive() {
+    return status == Status.ACTIVE && !isExpired();
+}
+
+/**
+ * Checks if the user has administrative privileges.
+ *
+ * @return {@code true} if user is admin, {@code false} otherwise
+ */
+public boolean hasAdminPrivileges() {
+    return role == Role.ADMIN || role == Role.SUPER_ADMIN;
+}
+```
+
+#### Collection Getters
+
+For getters returning collections, specify mutability:
+
+```java
+/**
+ * Returns the list of user's roles.
+ * <p>
+ * The returned list is unmodifiable. Use {@link #addRole(Role)}
+ * to add roles.
+ *
+ * @return unmodifiable list of roles, never null but can be empty
+ */
+public List<Role> getRoles() {
+    return Collections.unmodifiableList(roles);
+}
+```
+
+**With defensive copy:**
+```java
+/**
+ * Returns the user's addresses.
+ * <p>
+ * Returns a defensive copy of the internal address list.
+ * Modifications to the returned list do not affect this user.
+ *
+ * @return a new list containing all addresses, never null but can be empty
+ */
+public List<Address> getAddresses() {
+    return new ArrayList<>(addresses);
+}
+```
+
+#### Fluent Setters (Builder Pattern)
+
+For setters that return `this` for chaining:
+
+```java
+/**
+ * Sets the user's email address.
+ * <p>
+ * This is a fluent setter that returns this instance for method chaining.
+ *
+ * @param email the email address, must not be null
+ * @return this user instance for method chaining
+ * @throws NullPointerException if email is null
+ * @throws IllegalArgumentException if email format is invalid
+ */
+public User setEmail(String email) {
+    if (email == null) {
+        throw new NullPointerException("Email cannot be null");
+    }
+    if (!isValidEmail(email)) {
+        throw new IllegalArgumentException("Invalid email format");
+    }
+    this.email = email;
+    return this;
+}
+```
+
+#### When to Skip Javadoc for Getters/Setters
+
+**Never skip in public APIs**, but for **internal DTOs or simple POJOs**, you might use:
+
+```java
+// For very simple, self-explanatory getters/setters in internal code:
+
+/** @return the name */
+public String getName() { return name; }
+
+/** @param name the name */
+public void setName(String name) { this.name = name; }
+```
+
+**However, even for simple cases, it's better to be explicit:**
+
+```java
+/**
+ * Returns the user name.
+ *
+ * @return the name, or null if not set
+ */
+public String getName() { return name; }
+
+/**
+ * Sets the user name.
+ *
+ * @param name the name, can be null
+ */
+public void setName(String name) { this.name = name; }
+```
+
+#### Complete Example: JavaBean with Getters/Setters
+
+```java
+/**
+ * Represents a user account in the system.
+ * <p>
+ * This is a mutable JavaBean with standard getter/setter methods.
+ * All setters validate their input before assignment.
+ *
+ * @since 1.0
+ */
+public class User {
+    
+    private String id;
+    private String username;
+    private String email;
+    private UserStatus status;
+    private Instant createdAt;
+    
+    /**
+     * Returns the unique user identifier.
+     *
+     * @return the user ID, never null after persistence
+     */
+    public String getId() {
+        return id;
+    }
+    
+    /**
+     * Sets the unique user identifier.
+     * <p>
+     * This should only be called by the persistence layer.
+     *
+     * @param id the user ID, must not be null
+     * @throws NullPointerException if id is null
+     */
+    public void setId(String id) {
+        if (id == null) {
+            throw new NullPointerException("ID cannot be null");
+        }
+        this.id = id;
+    }
+    
+    /**
+     * Returns the username.
+     * <p>
+     * Username is unique within the system and cannot be changed
+     * after initial setting.
+     *
+     * @return the username, never null
+     */
+    public String getUsername() {
+        return username;
+    }
+    
+    /**
+     * Sets the username.
+     * <p>
+     * Username must be 3-20 alphanumeric characters.
+     * This method should only be called during user creation.
+     *
+     * @param username the username, must not be null
+     * @throws NullPointerException if username is null
+     * @throws IllegalArgumentException if username doesn't meet requirements
+     * @throws IllegalStateException if username is already set
+     */
+    public void setUsername(String username) {
+        if (username == null) {
+            throw new NullPointerException("Username cannot be null");
+        }
+        if (this.username != null) {
+            throw new IllegalStateException("Username already set");
+        }
+        validateUsername(username);
+        this.username = username;
+    }
+    
+    /**
+     * Returns the email address.
+     *
+     * @return the email address, or null if not set
+     */
+    public String getEmail() {
+        return email;
+    }
+    
+    /**
+     * Sets the email address.
+     * <p>
+     * Email must be in valid format. Setting null clears the email.
+     *
+     * @param email the email address, can be null
+     * @throws IllegalArgumentException if email is not null and invalid
+     */
+    public void setEmail(String email) {
+        if (email != null && !isValidEmail(email)) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        this.email = email;
+    }
+    
+    /**
+     * Returns the current account status.
+     *
+     * @return the status, never null
+     */
+    public UserStatus getStatus() {
+        return status;
+    }
+    
+    /**
+     * Sets the account status.
+     * <p>
+     * Status transitions are validated. Not all transitions are allowed.
+     * See {@link UserStatus} for valid transitions.
+     *
+     * @param status the new status, must not be null
+     * @throws NullPointerException if status is null
+     * @throws IllegalStateException if transition is not allowed
+     */
+    public void setStatus(UserStatus status) {
+        if (status == null) {
+            throw new NullPointerException("Status cannot be null");
+        }
+        validateStatusTransition(this.status, status);
+        this.status = status;
+    }
+    
+    /**
+     * Returns the account creation timestamp.
+     *
+     * @return the creation time, never null after persistence
+     */
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+    
+    /**
+     * Sets the account creation timestamp.
+     * <p>
+     * This should only be called by the persistence layer.
+     *
+     * @param createdAt the creation time, must not be null
+     * @throws NullPointerException if createdAt is null
+     */
+    public void setCreatedAt(Instant createdAt) {
+        if (createdAt == null) {
+            throw new NullPointerException("CreatedAt cannot be null");
+        }
+        this.createdAt = createdAt;
+    }
+    
+    /**
+     * Checks if the account is currently active.
+     *
+     * @return {@code true} if status is ACTIVE, {@code false} otherwise
+     */
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
+}
+```
+
+#### Key Points for Getters/Setters
+
+1. **Always document null handling**: "can be null", "never null", "or null if not set"
+2. **Document validation rules** in setters
+3. **Document side effects** (notifications, logging, cascading updates)
+4. **Document thread safety** if getters/setters access shared state
+5. **Document immutability constraints** (e.g., "cannot be changed after initial setting")
+6. **For boolean getters**, use clear true/false descriptions
+7. **For collection getters**, specify if returned collection is modifiable
+8. **Document performance characteristics** if getter does expensive computation
 
 ---
 

@@ -8,6 +8,7 @@
 5. [Документирование аннотаций](#5-Документирование-аннотаций)
 6. [Документирование полей](#6-Документирование-полей)
 7. [Документирование методов и конструкторов](#7-Документирование-методов-и-конструкторов)
+   - 7.7 [Документирование геттеров и сеттеров](#77-Документирование-геттеров-и-сеттеров)
 8. [Документирование generic-типов и параметров типов](#8-Документирование-generic-типов-и-параметров-типов)
 9. [Документация пакетов (package-info.java)](#9-Документация-пакетов-package-infojava)
 10. [Документация модулей (module-info.java)](#10-Документация-модулей-module-infojava)
@@ -1100,6 +1101,425 @@ public ShoppingCart(String userId, String sessionId) {
     // реализация
 }
 ```
+
+### 7.7 Документирование геттеров и сеттеров
+
+Геттеры и сеттеры **должны быть документированы**, но уровень детализации зависит от их сложности.
+
+#### Простые геттеры
+
+Для **простых геттеров** (прямой доступ к полю без логики) предоставьте краткую документацию:
+
+**Минимум требуемого:**
+```java
+/**
+ * Возвращает адрес электронной почты пользователя.
+ *
+ * @return адрес электронной почты, или null, если не установлен
+ */
+public String getEmail() {
+    return email;
+}
+```
+
+**Лучше с деталями:**
+```java
+/**
+ * Возвращает адрес электронной почты пользователя.
+ * <p>
+ * Адрес электронной почты валидируется при установке и гарантированно
+ * в допустимом формате, если не null.
+ *
+ * @return адрес электронной почты, или null, если не установлен
+ */
+public String getEmail() {
+    return email;
+}
+```
+
+#### Простые сеттеры
+
+Для **простых сеттеров** (прямое присваивание полю) документируйте ограничения и валидацию:
+
+**Минимум требуемого:**
+```java
+/**
+ * Устанавливает адрес электронной почты пользователя.
+ *
+ * @param email адрес электронной почты, может быть null
+ */
+public void setEmail(String email) {
+    this.email = email;
+}
+```
+
+**Лучше с правилами валидации:**
+```java
+/**
+ * Устанавливает адрес электронной почты пользователя.
+ * <p>
+ * Адрес должен быть в допустимом формате (user@domain.tld).
+ * Установка null очищает адрес электронной почты.
+ *
+ * @param email адрес электронной почты, может быть null для очистки
+ * @throws IllegalArgumentException если email не null и имеет недопустимый формат
+ */
+public void setEmail(String email) {
+    if (email != null && !isValidEmail(email)) {
+        throw new IllegalArgumentException("Недопустимый формат email");
+    }
+    this.email = email;
+}
+```
+
+#### Сложные геттеры
+
+Для геттеров с **вычислением, кэшированием или ленивой инициализацией**:
+
+```java
+/**
+ * Возвращает полное имя пользователя.
+ * <p>
+ * Этот метод конструирует полное имя из компонентов имени и фамилии.
+ * Если любой из компонентов null, возвращает только ненулевую часть.
+ * Если оба null, возвращает пустую строку.
+ * <p>
+ * Результат кэшируется после первого вычисления для производительности.
+ *
+ * @return полное имя, никогда не null, но может быть пустым
+ */
+public String getFullName() {
+    if (fullNameCache == null) {
+        fullNameCache = buildFullName();
+    }
+    return fullNameCache;
+}
+```
+
+#### Сложные сеттеры
+
+Для сеттеров с **валидацией, побочными эффектами или каскадными обновлениями**:
+
+```java
+/**
+ * Устанавливает статус пользователя.
+ * <p>
+ * Изменение статуса вызывает несколько побочных эффектов:
+ * <ul>
+ *   <li>Обновляет временную метку последнего изменения</li>
+ *   <li>Очищает сеанс, если статус SUSPENDED или INACTIVE</li>
+ *   <li>Отправляет уведомление пользователю при изменении статуса</li>
+ *   <li>Логирует изменение статуса для аудита</li>
+ * </ul>
+ * <p>
+ * Этот метод потокобезопасен, но может кратковременно блокироваться
+ * для доставки уведомления.
+ *
+ * @param status новый статус, не должен быть null
+ * @throws NullPointerException если status равен null
+ * @throws IllegalStateException если текущий статус не позволяет переход
+ *         к новому статусу
+ */
+public void setStatus(UserStatus status) {
+    validateStatusTransition(this.status, status);
+    this.status = status;
+    this.lastModified = Instant.now();
+    handleStatusChange(status);
+}
+```
+
+#### Булевы геттеры (префиксы is/has)
+
+Булевы геттеры обычно используют префиксы `is` или `has`:
+
+```java
+/**
+ * Проверяет, активна ли учетная запись пользователя.
+ * <p>
+ * Учетная запись считается активной, если статус ACTIVE
+ * и учетная запись не истекла.
+ *
+ * @return {@code true}, если учетная запись активна, {@code false} в противном случае
+ */
+public boolean isActive() {
+    return status == Status.ACTIVE && !isExpired();
+}
+
+/**
+ * Проверяет, имеет ли пользователь административные привилегии.
+ *
+ * @return {@code true}, если пользователь админ, {@code false} в противном случае
+ */
+public boolean hasAdminPrivileges() {
+    return role == Role.ADMIN || role == Role.SUPER_ADMIN;
+}
+```
+
+#### Геттеры коллекций
+
+Для геттеров, возвращающих коллекции, указывайте изменяемость:
+
+```java
+/**
+ * Возвращает список ролей пользователя.
+ * <p>
+ * Возвращаемый список неизменяемый. Используйте {@link #addRole(Role)}
+ * для добавления ролей.
+ *
+ * @return неизменяемый список ролей, никогда не null, но может быть пустым
+ */
+public List<Role> getRoles() {
+    return Collections.unmodifiableList(roles);
+}
+```
+
+**С защитной копией:**
+```java
+/**
+ * Возвращает адреса пользователя.
+ * <p>
+ * Возвращает защитную копию внутреннего списка адресов.
+ * Изменения возвращенного списка не влияют на этого пользователя.
+ *
+ * @return новый список, содержащий все адреса, никогда не null, но может быть пустым
+ */
+public List<Address> getAddresses() {
+    return new ArrayList<>(addresses);
+}
+```
+
+#### Плавные сеттеры (паттерн Builder)
+
+Для сеттеров, возвращающих `this` для цепочки вызовов:
+
+```java
+/**
+ * Устанавливает адрес электронной почты пользователя.
+ * <p>
+ * Это плавный сеттер, возвращающий этот экземпляр для цепочки методов.
+ *
+ * @param email адрес электронной почты, не должен быть null
+ * @return этот экземпляр пользователя для цепочки методов
+ * @throws NullPointerException если email равен null
+ * @throws IllegalArgumentException если формат email недопустим
+ */
+public User setEmail(String email) {
+    if (email == null) {
+        throw new NullPointerException("Email не может быть null");
+    }
+    if (!isValidEmail(email)) {
+        throw new IllegalArgumentException("Недопустимый формат email");
+    }
+    this.email = email;
+    return this;
+}
+```
+
+#### Когда можно пропустить Javadoc для геттеров/сеттеров
+
+**Никогда не пропускайте в публичных API**, но для **внутренних DTO или простых POJO** можно использовать:
+
+```java
+// Для очень простых, самоочевидных геттеров/сеттеров во внутреннем коде:
+
+/** @return имя */
+public String getName() { return name; }
+
+/** @param name имя */
+public void setName(String name) { this.name = name; }
+```
+
+**Однако даже для простых случаев лучше быть явным:**
+
+```java
+/**
+ * Возвращает имя пользователя.
+ *
+ * @return имя, или null, если не установлено
+ */
+public String getName() { return name; }
+
+/**
+ * Устанавливает имя пользователя.
+ *
+ * @param name имя, может быть null
+ */
+public void setName(String name) { this.name = name; }
+```
+
+#### Полный пример: JavaBean с геттерами/сеттерами
+
+```java
+/**
+ * Представляет учетную запись пользователя в системе.
+ * <p>
+ * Это изменяемый JavaBean со стандартными методами getter/setter.
+ * Все сеттеры валидируют свой ввод перед присваиванием.
+ *
+ * @since 1.0
+ */
+public class User {
+    
+    private String id;
+    private String username;
+    private String email;
+    private UserStatus status;
+    private Instant createdAt;
+    
+    /**
+     * Возвращает уникальный идентификатор пользователя.
+     *
+     * @return ID пользователя, никогда не null после сохранения
+     */
+    public String getId() {
+        return id;
+    }
+    
+    /**
+     * Устанавливает уникальный идентификатор пользователя.
+     * <p>
+     * Должен вызываться только слоем персистентности.
+     *
+     * @param id ID пользователя, не должен быть null
+     * @throws NullPointerException если id равен null
+     */
+    public void setId(String id) {
+        if (id == null) {
+            throw new NullPointerException("ID не может быть null");
+        }
+        this.id = id;
+    }
+    
+    /**
+     * Возвращает имя пользователя.
+     * <p>
+     * Имя пользователя уникально в системе и не может быть изменено
+     * после первоначальной установки.
+     *
+     * @return имя пользователя, никогда не null
+     */
+    public String getUsername() {
+        return username;
+    }
+    
+    /**
+     * Устанавливает имя пользователя.
+     * <p>
+     * Имя пользователя должно содержать 3-20 буквенно-цифровых символов.
+     * Этот метод должен вызываться только при создании пользователя.
+     *
+     * @param username имя пользователя, не должно быть null
+     * @throws NullPointerException если username равен null
+     * @throws IllegalArgumentException если username не соответствует требованиям
+     * @throws IllegalStateException если username уже установлено
+     */
+    public void setUsername(String username) {
+        if (username == null) {
+            throw new NullPointerException("Username не может быть null");
+        }
+        if (this.username != null) {
+            throw new IllegalStateException("Username уже установлено");
+        }
+        validateUsername(username);
+        this.username = username;
+    }
+    
+    /**
+     * Возвращает адрес электронной почты.
+     *
+     * @return адрес электронной почты, или null, если не установлен
+     */
+    public String getEmail() {
+        return email;
+    }
+    
+    /**
+     * Устанавливает адрес электронной почты.
+     * <p>
+     * Email должен быть в допустимом формате. Установка null очищает email.
+     *
+     * @param email адрес электронной почты, может быть null
+     * @throws IllegalArgumentException если email не null и недопустим
+     */
+    public void setEmail(String email) {
+        if (email != null && !isValidEmail(email)) {
+            throw new IllegalArgumentException("Недопустимый формат email");
+        }
+        this.email = email;
+    }
+    
+    /**
+     * Возвращает текущий статус учетной записи.
+     *
+     * @return статус, никогда не null
+     */
+    public UserStatus getStatus() {
+        return status;
+    }
+    
+    /**
+     * Устанавливает статус учетной записи.
+     * <p>
+     * Переходы статусов валидируются. Не все переходы разрешены.
+     * См. {@link UserStatus} для допустимых переходов.
+     *
+     * @param status новый статус, не должен быть null
+     * @throws NullPointerException если status равен null
+     * @throws IllegalStateException если переход не разрешен
+     */
+    public void setStatus(UserStatus status) {
+        if (status == null) {
+            throw new NullPointerException("Status не может быть null");
+        }
+        validateStatusTransition(this.status, status);
+        this.status = status;
+    }
+    
+    /**
+     * Возвращает временную метку создания учетной записи.
+     *
+     * @return время создания, никогда не null после сохранения
+     */
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+    
+    /**
+     * Устанавливает временную метку создания учетной записи.
+     * <p>
+     * Должен вызываться только слоем персистентности.
+     *
+     * @param createdAt время создания, не должно быть null
+     * @throws NullPointerException если createdAt равен null
+     */
+    public void setCreatedAt(Instant createdAt) {
+        if (createdAt == null) {
+            throw new NullPointerException("CreatedAt не может быть null");
+        }
+        this.createdAt = createdAt;
+    }
+    
+    /**
+     * Проверяет, активна ли учетная запись в данный момент.
+     *
+     * @return {@code true}, если статус ACTIVE, {@code false} в противном случае
+     */
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
+}
+```
+
+#### Ключевые моменты для геттеров/сеттеров
+
+1. **Всегда документируйте обработку null**: "может быть null", "никогда не null", "или null, если не установлено"
+2. **Документируйте правила валидации** в сеттерах
+3. **Документируйте побочные эффекты** (уведомления, логирование, каскадные обновления)
+4. **Документируйте потокобезопасность**, если геттеры/сеттеры обращаются к разделяемому состоянию
+5. **Документируйте ограничения неизменяемости** (например, "не может быть изменено после первоначальной установки")
+6. **Для булевых геттеров** используйте четкие описания true/false
+7. **Для геттеров коллекций** указывайте, изменяема ли возвращаемая коллекция
+8. **Документируйте характеристики производительности**, если геттер выполняет дорогое вычисление
 
 ---
 
